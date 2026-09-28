@@ -36,7 +36,7 @@ graph TD
     Gateway -->|Routes /api/notifications| Notification[Notification Service]
 
     %% Sync & Async Communication
-    Shipment -->|Sync Feign Call (Resilience4j)| Notification
+    Shipment -->|Sync Feign Call - Resilience4j| Notification
     Shipment -->|Publishes Status Events| Kafka[Apache Kafka]
     Kafka -->|Consumes Events| Notification
 
