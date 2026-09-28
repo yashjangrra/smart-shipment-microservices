@@ -26,31 +26,25 @@ In the global freight forwarding industry (e.g., 3PL providers like DP World or 
 
 ```mermaid
 graph TD
-    %% Core Client & Gateway
-    Client[React SPA Dashboard] -->|HTTPS + JWT| Gateway[Spring Cloud API Gateway]
-    Gateway -.->|Rate Limiting & JWT Blocklist| Redis[(Redis)]
-
-    %% Routing
+    Client[React SPA Dashboard] -->|Axios + JWT| Gateway[Spring Cloud API Gateway]
+    
     Gateway -->|Routes /auth| Auth[Auth Service]
     Gateway -->|Routes /shipments| Shipment[Shipment Service]
     Gateway -->|Routes /api/notifications| Notification[Notification Service]
-
-    %% Sync & Async Communication
-    Shipment -->|Sync Feign Call - Resilience4j| Notification
-    Shipment -->|Publishes Status Events| Kafka[Apache Kafka]
+    
+    Gateway -.->|Rate Limiting & Blocklist| Redis[(Redis)]
+    
+    Shipment -->|Produces Events| Kafka[Apache Kafka]
     Kafka -->|Consumes Events| Notification
-
-    %% Databases
-    Auth -->|JDBC| DB_Auth[(Auth DB)]
-    Shipment -->|JDBC| DB_Ship[(Shipment DB)]
-    Notification -->|JDBC| DB_Notif[(Notification DB)]
-
-    %% Service Discovery
-    Eureka((Netflix Eureka))
-    Auth -.->|Registers| Eureka
-    Shipment -.->|Registers| Eureka
-    Notification -.->|Registers| Eureka
-    Gateway -.->|Discovers| Eureka
+    
+    Shipment -.-> DB1[(PostgreSQL)]
+    Auth -.-> DB2[(PostgreSQL)]
+    Notification -.-> DB3[(PostgreSQL)]
+    
+    Eureka((Netflix Eureka)) -.-> Gateway
+    Eureka -.-> Auth
+    Eureka -.-> Shipment
+    Eureka -.-> Notification
 ```
 
 | Service | Responsibility |
