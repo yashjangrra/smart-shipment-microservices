@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: smart-api-gateway
+
+  cloud:
+    config:
+      enabled: false
+
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/auth/**
+
+            - id: shipment-service
+              uri: lb://SMART-SHIPMENT
+
+              predicates:
+                - Path=/shipments/**,/api/shipments/**
+
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@userKeyResolver}"
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 50
+                    redis-rate-limiter.requestedTokens: 1
+
+            - id: notification-service
+              uri: lb://SMART-NOTIFICATION
+              predicates:
+                - Path=/api/notifications/**
+
+            - id: auth-openapi
+              uri: lb://AUTH-SERVICE
+              predicates:
+                - Path=/v3/api-docs/auth-service
+              filters:
+                - RewritePath=/v3/api-docs/auth-service, /v3/api-docs
+
+            - id: shipment-openapi
+              uri: lb://SMART-SHIPMENT
+              predicates:
+                - Path=/v3/api-docs/shipment-service
+              filters:
+                - RewritePath=/v3/api-docs/shipment-service, /v3/api-docs
+
+            - id: notification-openapi
+              uri: lb://SMART-NOTIFICATION
+              predicates:
+                - Path=/v3/api-docs/notification-service
+              filters:
+                - RewritePath=/v3/api-docs/notification-service, /v3/api-docs
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Auth Service
+        url: /v3/api-docs/auth-service
+      - name: Shipment Service
+        url: /v3/api-docs/shipment-service
+      - name: Notification Service
+        url: /v3/api-docs/notification-service
+    use-root-path: true
+
+  api-docs:
+    enabled: true
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+
+  instance:
+    prefer-ip-address: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-this-development-secret-to-a-secure-32-byte-value}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
